@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Urban Traffic Management – Congestion Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<script>__CHARTJS__</script>
+<style>
+:root{--bg:#f2f4f6;--card:#fff;--ink:#15212c;--mute:#5d6b78;--line:#dde3e8;--accent:#1b5fd6;--g:#2f9e6d;--y:#e5b22e;--o:#e2692b;--r:#b9232f;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0f161d;--card:#17212b;--ink:#e7edf2;--mute:#93a1ae;--line:#263340;--accent:#6ea2ff;color-scheme:dark}}
+:root[data-theme=dark]{--bg:#0f161d;--card:#17212b;--ink:#e7edf2;--mute:#93a1ae;--line:#263340;--accent:#6ea2ff;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 'DM Sans',system-ui,sans-serif}
+header{padding:22px 20px 14px;max-width:1180px;margin:auto}
+h1{font-size:clamp(22px,4vw,32px);line-height:1.15;margin:0 0 6px;font-weight:700;letter-spacing:-.02em}
+header p{margin:0;color:var(--mute);max-width:70ch}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.bar div{max-width:1180px;margin:auto;padding:10px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+select,button{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+button{cursor:pointer}:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+main{max-width:1180px;margin:auto;padding:16px 20px 40px;display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+.s12{grid-column:span 12}.s8{grid-column:span 8}.s7{grid-column:span 7}.s6{grid-column:span 6}.s5{grid-column:span 5}.s4{grid-column:span 4}.s3{grid-column:span 3}
+@media(max-width:860px){section{grid-column:span 12!important}.k{grid-column:span 6!important}}
+h2{font-size:16px;margin:0 0 2px}.sub{color:var(--mute);font-size:13px;margin:0 0 12px}
+.kpi b{display:block;font-size:26px;letter-spacing:-.02em}.kpi span{color:var(--mute);font-size:13px}
+.cv{position:relative;height:280px}
+.heat{overflow-x:auto}.hg{display:grid;grid-template-columns:120px repeat(24,minmax(26px,1fr));gap:2px;min-width:760px}
+.hg div{height:26px;border-radius:3px;font-size:11px;display:flex;align-items:center;justify-content:center;color:#fff}
+.hg .l{justify-content:flex-start;color:var(--ink);font-size:12px}.hg .h{color:var(--mute);height:18px}
+.leg{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mute);margin-top:10px}.leg i{height:8px;width:180px;border-radius:4px;background:linear-gradient(90deg,var(--g),var(--y),var(--o),var(--r))}
+table{width:100%;border-collapse:collapse;font-size:13.5px}th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}th{color:var(--mute);font-weight:500}
+.best{font-weight:700;color:var(--accent)}
+.pill{display:inline-block;padding:2px 10px;border-radius:99px;color:#fff;font-weight:700;font-size:13px}
+.row{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px}input[type=range]{flex:1;min-width:140px;accent-color:var(--accent)}
+.cm td{text-align:center}.note{color:var(--mute);font-size:12.5px;margin-top:8px}
+</style></head><body>
+<header><h1>Urban Traffic Management: Pattern Mining and Congestion Prediction</h1>
+<p>Data-mining study of hourly traffic across eight city zones: peak hours, congestion patterns, and next-period prediction.</p></header>
+<div class="bar"><div><label for="area">Zone</label><select id="area"></select>
+<label for="wk">Day type</label><select id="wk"><option value="weekday">Weekday</option><option value="weekend">Weekend</option></select>
+<button id="theme" type="button">Switch theme</button></div></div>
+<main>
+<section class="s3 k kpi"><span>City-wide peak hours</span><b id="k1"></b></section>
+<section class="s3 k kpi"><span>Most congested zone</span><b id="k2"></b></section>
+<section class="s3 k kpi"><span>Best classifier accuracy</span><b id="k3"></b><span id="k3s"></span></section>
+<section class="s3 k kpi"><span>Best regression R²</span><b id="k4"></b><span id="k4s"></span></section>
+
+<section class="s12"><h2>Traffic heatmap</h2><p class="sub">Average congestion index (0–100) by zone and hour of day.</p><div class="heat"><div class="hg" id="hm"></div></div>
+<div class="leg">0<i></i>100 &nbsp; Low &lt;35 · Moderate &lt;60 · High &lt;80 · Severe</div></section>
+
+<section class="s7"><h2>Hourly traffic trends</h2><p class="sub" id="tsub"></p><div class="cv"><canvas id="c_trend"></canvas></div></section>
+<section class="s5"><h2>Vehicle distribution</h2><p class="sub">Share of vehicle types in the selected zone.</p><div class="cv"><canvas id="c_veh"></canvas></div></section>
+
+<section class="s7"><h2>Congestion prediction: last 7 days</h2><p class="sub" id="psub"></p><div class="cv"><canvas id="c_pred"></canvas></div></section>
+<section class="s5"><h2>What-if forecast</h2><p class="sub">Model prediction for the selected zone and day type.</p>
+<div class="row"><label for="hr">Hour <b id="hv"></b></label><input id="hr" type="range" min="0" max="23" value="9"><label><input type="checkbox" id="rain"> Rain</label></div>
+<div class="row"><span>Predicted index <b id="pi"></b></span><span id="pl" class="pill"></span></div><div class="cv" style="height:200px"><canvas id="c_what"></canvas></div></section>
+
+<section class="s7"><h2>Area-wise congestion comparison</h2><p class="sub">Average index and share of hours rated High or Severe.</p><div class="cv" style="height:320px"><canvas id="c_area"></canvas></div></section>
+<section class="s5"><h2>Congestion level mix</h2><p class="sub">Hours per level across the full dataset.</p><div class="cv" style="height:320px"><canvas id="c_lvl"></canvas></div></section>
+
+<section class="s6"><h2>Classification (congestion level)</h2><p class="sub" id="csub"></p><table id="t_clf"></table><div class="note">Confusion matrix, best model (rows actual, columns predicted)</div><table class="cm" id="t_cm"></table></section>
+<section class="s6"><h2>Regression (congestion index)</h2><p class="sub">Chronological split: the last 21 days are held out as unseen future.</p><table id="t_reg"></table><div class="note">Feature importance (Random Forest)</div><div class="cv" style="height:200px"><canvas id="c_imp"></canvas></div></section>
+
+<section class="s6"><h2>Association rules</h2><p class="sub">Conditions that predict High or Severe congestion (Apriori).</p><table id="t_rules"></table></section>
+<section class="s6"><h2>Clusters of zone-hours</h2><p class="sub" id="ksub"></p><table id="t_clu"></table><div class="note">Peak hours per zone</div><table id="t_peak"></table></section>
+</main>
+<script>
+const D=__DATA__;const $=id=>document.getElementById(id);const hrs=[...Array(24).keys()];
+const fh=h=>String(h).padStart(2,'0')+':00',lv=v=>v<35?0:v<60?1:v<80?2:3,LC=['#2f9e6d','#e5b22e','#e2692b','#b9232f'];
+const avg=a=>a[0].map((_,i)=>+(a.reduce((s,r)=>s+r[i],0)/a.length).toFixed(1));
+const mix=(c,d,t)=>{const p=s=>[1,3,5].map(i=>parseInt(s.slice(i,i+2),16));const a=p(c),b=p(d);return'rgb('+a.map((x,i)=>Math.round(x+(b[i]-x)*t))+')'};
+const stops=[[0,'#2f9e6d'],[35,'#e5b22e'],[60,'#e2692b'],[100,'#b9232f']];
+const col=v=>{for(let i=1;i<4;i++)if(v<=stops[i][0])return mix(stops[i-1][1],stops[i][1],(v-stops[i-1][0])/(stops[i][0]-stops[i-1][0]));return stops[3][1]};
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const area=$('area');area.innerHTML='<option value="all">All zones</option>'+D.areas.map((a,i)=>`<option value="${i}">${a}</option>`).join('');
+const sel=()=>area.value,wk=()=>$('wk').value;
+// KPIs & tables
+$('k1').textContent=D.cityPeak.map(fh).join(', ');
+const topIdx=D.stats.avg.indexOf(Math.max(...D.stats.avg));$('k2').textContent=D.areas[topIdx];
+const bc=D.classifiers.find(c=>c.model===D.bestClf),br=D.regressors.find(r=>r.model===D.bestReg);
+$('k3').textContent=(bc.accuracy*100).toFixed(1)+'%';$('k3s').textContent=D.bestClf;$('k4').textContent=br.r2.toFixed(3);$('k4s').textContent=D.bestReg;
+$('csub').textContent=`Trained on ${D.train.toLocaleString()} records, tested on ${D.test.toLocaleString()}.`;
+$('t_clf').innerHTML='<tr><th>Model<th>Accuracy<th>F1 (weighted)</tr>'+D.classifiers.map(c=>`<tr><td class="${c.model===D.bestClf?'best':''}">${c.model}<td>${(c.accuracy*100).toFixed(1)}%<td>${c.f1==null?'–':c.f1.toFixed(3)}</tr>`).join('');
+$('t_cm').innerHTML='<tr><th><th>'+D.levels.join('<th>')+'</tr>'+D.confusion.map((r,i)=>`<tr><th>${D.levels[i]}`+r.map((v,j)=>`<td style="background:${i==j?'color-mix(in srgb,var(--accent) 22%,transparent)':'transparent'}">${v}`).join('')+'</tr>').join('');
+$('t_reg').innerHTML='<tr><th>Model<th>R²<th>MAE<th>RMSE</tr>'+D.regressors.map(r=>`<tr><td class="${r.model===D.bestReg?'best':''}">${r.model}<td>${r.r2.toFixed(3)}<td>${r.mae}<td>${r.rmse}</tr>`).join('');
+$('t_rules').innerHTML='<tr><th>If<th>Then<th>Conf.<th>Lift</tr>'+D.rules.map(r=>`<tr><td>${r.if}<td>${r.then}<td>${(r.confidence*100).toFixed(0)}%<td>${r.lift}</tr>`).join('');
+$('ksub').textContent='K-Means on index, speed and volume. Best k by silhouette: '+Object.entries(D.silhouette).sort((a,b)=>b[1]-a[1])[0][0]+'.';
+$('t_clu').innerHTML='<tr><th>Cluster<th>Zone-hours<th>Avg index<th>Avg speed (km/h)</tr>'+D.clusters.map(c=>`<tr><td>${c.name}<td>${c.hours}<td>${c.idx}<td>${c.speed}</tr>`).join('');
+$('t_peak').innerHTML=D.areas.map(a=>`<tr><td>${a}<td>${D.peaks[a].map(fh).join(', ')}</tr>`).join('');
+// Heatmap
+$('hm').innerHTML='<div class="h"></div>'+hrs.map(h=>`<div class="h">${h}</div>`).join('')+D.areas.map((a,i)=>`<div class="l">${a}</div>`+D.heat[i].map((v,h)=>`<div style="background:${col(v)}" title="${a}, ${fh(h)}: ${v}">${Math.round(v)}</div>`).join('')).join('');
+// Charts
+const ch={};
+function mk(id,cfg){ch[id]&&ch[id].destroy();Chart.defaults.color=css('--mute');Chart.defaults.font.family="'DM Sans',system-ui,sans-serif";Chart.defaults.borderColor=css('--line');
+ cfg.options=Object.assign({responsive:true,maintainAspectRatio:false,animation:{duration:400}},cfg.options);ch[id]=new Chart($(id),cfg)}
+const sc=(t)=>({y:{min:0,max:100,title:{display:!!t,text:t}},x:{grid:{display:false}}});
+function render(){
+ const s=sel(),w=wk(),nm=s==='all'?'All zones':D.areas[s];
+ const tr=s==='all'?avg(D.areas.map(a=>D.trend[a][w])):D.trend[D.areas[s]][w];
+ $('tsub').textContent=`${nm}, ${w}: average congestion index by hour.`;
+ mk('c_trend',{type:'line',data:{labels:hrs.map(fh),datasets:[{label:'Congestion index',data:tr,borderColor:css('--accent'),backgroundColor:'transparent',tension:.35,pointRadius:2},
+  {label:'High threshold',data:hrs.map(()=>60),borderColor:css('--o'),borderDash:[5,4],pointRadius:0,borderWidth:1.5}]},options:{scales:sc('Index'),plugins:{legend:{position:'bottom'}}}});
+ const v=s==='all'?D.vehicles.total:D.vehicles.byArea[D.areas[s]];
+ mk('c_veh',{type:'doughnut',data:{labels:D.vtypes,datasets:[{data:v,backgroundColor:['#1b5fd6','#2f9e6d','#e5b22e','#7a5ac7','#e2692b'],borderColor:css('--card'),borderWidth:2}]},options:{cutout:'58%',plugins:{legend:{position:'bottom'}}}});
+ const se=s==='all'?{actual:avg(D.areas.map(a=>D.series[a].actual)),pred:avg(D.areas.map(a=>D.series[a].pred))}:D.series[D.areas[s]];
+ const L=se.actual.map((_,i)=>'D'+(Math.floor(i/24)+1)+' '+fh(i%24));
+ const err=se.actual.reduce((q,x,i)=>q+Math.abs(x-se.pred[i]),0)/se.actual.length;
+ $('psub').textContent=`${nm}: actual vs predicted index, held-out final week. Mean absolute error ${err.toFixed(1)} points.`;
+ mk('c_pred',{type:'line',data:{labels:L,datasets:[{label:'Actual',data:se.actual,borderColor:css('--ink'),pointRadius:0,borderWidth:1.5,backgroundColor:'transparent'},
+  {label:'Predicted',data:se.pred,borderColor:css('--accent'),pointRadius:0,borderWidth:2,backgroundColor:'transparent',borderDash:[4,3]}]},options:{scales:{y:{min:0,max:100},x:{ticks:{maxTicksLimit:8},grid:{display:false}}},plugins:{legend:{position:'bottom'}},interaction:{mode:'index',intersect:false}}});
+ what();
+}
+function what(){
+ const s=sel()==='all'?topIdx:+sel(),w=wk()==='weekend'?1:0,r=$('rain').checked?1:0,h=+$('hr').value,g=D.grid[`${s}|${w}|${r}`],p=g[h];
+ $('hv').textContent=fh(h);$('pi').textContent=p.toFixed(1);const l=lv(p);$('pl').textContent=D.levels[l];$('pl').style.background=LC[l];
+ mk('c_what',{type:'bar',data:{labels:hrs,datasets:[{data:g,backgroundColor:g.map((x,i)=>i===h?css('--accent'):col(x))}]},options:{scales:sc(),plugins:{legend:{display:false},title:{display:true,text:D.areas[s]+(r?', rain':'')}}}});
+}
+function static_(){
+ const o=D.stats.avg.map((v,i)=>i).sort((a,b)=>D.stats.avg[b]-D.stats.avg[a]);
+ mk('c_area',{type:'bar',data:{labels:o.map(i=>D.areas[i]),datasets:[{label:'Avg index',data:o.map(i=>D.stats.avg[i]),backgroundColor:o.map(i=>col(D.stats.avg[i]*1.4))},
+  {label:'% hours High/Severe',data:o.map(i=>D.stats.heavy[i]),backgroundColor:css('--accent')}]},options:{indexAxis:'y',scales:{x:{min:0,max:100},y:{grid:{display:false}}},plugins:{legend:{position:'bottom'}}}});
+ mk('c_lvl',{type:'doughnut',data:{labels:D.levels,datasets:[{data:D.levelCounts,backgroundColor:LC,borderColor:css('--card'),borderWidth:2}]},options:{cutout:'55%',plugins:{legend:{position:'bottom'}}}});
+ mk('c_imp',{type:'bar',data:{labels:D.importance.map(x=>x[0]),datasets:[{data:D.importance.map(x=>x[1]),backgroundColor:css('--accent')}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{y:{grid:{display:false}}}}});
+}
+const all=()=>{static_();render()};
+area.onchange=$('wk').onchange=render;$('hr').oninput=$('rain').onchange=what;
+$('theme').onclick=()=>{const d=document.documentElement,dark=(d.dataset.theme||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'))==='dark';d.dataset.theme=dark?'light':'dark';all()};
+matchMedia('(prefers-color-scheme:dark)').addEventListener('change',all);all();
+</script></body></html>

@@ -1,0 +1,4 @@
+numpy
+pandas
+scikit-learn
+# optional: orange3, shogun (Shogun is hard to install on some systems; the pipeline skips it if absent)
